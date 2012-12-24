@@ -173,9 +173,9 @@ def main(argv):
     if curans == ans_tup:
       correct = True
     else:
-      print 'Enter 1 white 2 blacks (1 2):'
+      print 'Enter 5 pegs with a space (3b 2w):'
       myfeedback = raw_input()
-      (whites, blacks) = myfeedback.split(' ')
+      (blacks, whites) = myfeedback.split(' ')
       guesser.Prune(curans, int(whites), int(blacks))
   print 'Num guesses: %d' % guesser.num_guesses 
   
