@@ -3,7 +3,7 @@ import math
 import random
 import sys
 
-DEBUG = 1
+DEBUG = 0
 
 def AssertIn(obj, item):
   if obj not in item:
@@ -11,8 +11,8 @@ def AssertIn(obj, item):
 
 
 # Colors range from '0' to 'NUM_CHARS - 1'
-NUM_CHARS = 4
-NUM_SPACES = 3
+NUM_CHARS = 8
+NUM_SPACES = 5
 
 VALID_CHARS = [str(ind) for ind in xrange(NUM_CHARS)]
 
@@ -71,7 +71,8 @@ def _PossAns(guess, num_blacks, num_whites):
         if pos_to_guess in indices_to_use: # TODO: Shouldn't this be true though? Huh?
           indices_to_use.remove(pos_to_guess)
         else:
-          print 'wtf a problem white'
+          if DEBUG:
+            print 'wtf a problem white'
         # Fill in indices for which we know the color cannot be there.
         for index in indices_to_use:
           unfilled = unfilled_indices[:]
@@ -91,24 +92,23 @@ def _PossAns(guess, num_blacks, num_whites):
       unguessed_indices = _GetUnguessed(used_for_guess)
       for pos_to_guess in unguessed_indices:
         # Apply the blank rule to all unset indices just in case.
-        #indices_to_use = unfilled_indices[:]
-        
+        indices_to_use = unfilled_indices[:]
+        for index in indices_to_use: 
+          color_from_guess = guess[pos_to_guess]
+          # Find all other colors that are not this guess.
+          diff_colors = _ColorsNotMine(color_from_guess)
+          for diff_color in diff_colors:
+            unfilled = unfilled_indices[:]
+            if index in unfilled: # TODO: shouldnt this always be true though?
+              unfilled.remove(index)
+            else:
+              print 'wtf a problemm blank' 
+            used_guess = used_for_guess[:]
+            used_guess[pos_to_guess] = True
 
-        color_from_guess = guess[pos_to_guess]
-        # Find all other colors that are not this guess.
-        diff_colors = _ColorsNotMine(color_from_guess)
-        for diff_color in diff_colors:
-          unfilled = unfilled_indices[:]
-          if pos_to_guess in unfilled: # TODO: shouldnt this always be true though?
-            unfilled.remove(pos_to_guess)
-          else:
-            print 'wtf a problemm blank' 
-          used_guess = used_for_guess[:]
-          used_guess[pos_to_guess] = True
-
-          pot_sol = potential_sol[:]
-          pot_sol[pos_to_guess] = diff_color
-          _FindAns(blacks, whites, blanks, unfilled, used_guess, pot_sol)
+            pot_sol = potential_sol[:]
+            pot_sol[index] = diff_color
+            _FindAns(blacks, whites, blanks, unfilled, used_guess, pot_sol)
     else:
       # We have reached the end horray.
       answers.add(tuple(potential_sol))
