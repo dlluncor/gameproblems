@@ -34,6 +34,10 @@ def _PossAns(guess, num_blacks, num_whites):
   """Returns a set of tuples with possible answers.
 
   """
+  """
+    Reject invalid solutions when there are not all blacks, then there cannot be
+    that same color in that same position.
+  """
   answers = set([])  # Fill with potential answers. TODO(dlluncor): why so many dups?
   def _FindAns(blacks, whites, blanks, unfilled_indices, used_for_guess,
                potential_sol):
@@ -134,6 +138,7 @@ class Guesser(object):
     """
     self.num_guesses += 1
     num_poss = len(self.possibles)
+    print 'Number of possibilities: %d' % num_poss
     guess_rand = int(math.floor(random.random() * num_poss))
     el = self.possibles[guess_rand]
     self.possibles.remove(el)
@@ -187,7 +192,7 @@ def main(argv):
     curans = guesser.Guess()
     print 'Guessing %s' % str(curans)
     if curans == ans_tup:
-      correct = True
+      correct = False # Lets go forever! #True
     else:
       print 'Enter %d pegs with a space (3b 2w):' % NUM_SPACES
       myfeedback = raw_input()
