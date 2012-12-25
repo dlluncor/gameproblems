@@ -39,15 +39,21 @@ def _GetUnguessed(arr_of_guessed):
       unguessed.append(index)
   return unguessed
 
-def _InvalidSolution(num_blacks, guess, potential_sol):
+def _InvalidSolution(num_blacks, num_whites, guess, potential_sol):
   """If there are more than num_blacks exact overlaps, it is an invalid solution."""
   matches = 0
+  color_match = 0
   assert len(guess) == len(potential_sol)
   for guess_i, pot_sol_i in zip(guess, potential_sol):
     if guess_i == pot_sol_i:
       matches += 1
+    if pot_sol_i in guess:
+      color_match += 1
   if matches > num_blacks:
     return True
+  # Consider that there cannot be any more matching colors than whites.
+  if color_match > (num_blacks + num_whites):
+    return True 
   return False
  
 
@@ -81,6 +87,8 @@ def _PossAns(guess, num_blacks, num_whites):
         color_from_guess = guess[index]
         pot_sol = potential_sol[:]
         pot_sol[index] = color_from_guess # Set that color to be a valid one.
+        if _InvalidSolution(num_blacks, num_whites, guess, pot_sol):
+          continue
         _FindAns(blacks, whites, blanks, unfilled, used_guess, pot_sol)
     elif whites > 0:
       whites -= 1
@@ -111,7 +119,7 @@ def _PossAns(guess, num_blacks, num_whites):
           pot_sol[index] = color_from_guess
           # Scrub invalid solutions any time a potential solution now has more
           # than black overlaps.
-          if _InvalidSolution(num_blacks, guess, pot_sol):
+          if _InvalidSolution(num_blacks, num_whites, guess, pot_sol):
             continue
           _FindAns(blacks, whites, blanks, unfilled, used_guess, pot_sol)
 
@@ -137,7 +145,7 @@ def _PossAns(guess, num_blacks, num_whites):
 
             pot_sol = potential_sol[:]
             pot_sol[index] = diff_color
-            if _InvalidSolution(num_blacks, guess, pot_sol):
+            if _InvalidSolution(num_blacks, num_whites, guess, pot_sol):
               continue
             _FindAns(blacks, whites, blanks, unfilled, used_guess, pot_sol)
     else:
@@ -213,11 +221,12 @@ def main(argv):
     if char not in VALID_CHARS:
       print 'Your secret must be in the range %s' % str(VALID_CHARS)
       return
+  print 'Your guess is: %s' % str(_Translate(ans))
   correct = False
   guesser = Guesser()
   while not correct:
     curans = guesser.Guess()
-    print 'Guessing %s: ' % str(_Translate(curans))
+    print 'Myyy guess is: %s' % str(_Translate(curans))
     if curans == ans_tup:
       correct = False #True #Lets go forever! #True
     else:
