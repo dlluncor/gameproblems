@@ -4,6 +4,7 @@ import random
 import sys
 
 DEBUG = 0
+AUTO_ANSWER = 1 # Whether we want the computer to answer itself.
 
 def AssertIn(obj, item):
   if obj not in item:
@@ -44,11 +45,13 @@ def _InvalidSolution(num_blacks, num_whites, guess, potential_sol):
   matches = 0
   color_match = 0
   assert len(guess) == len(potential_sol)
+  left_of_guess = list(guess)
   for guess_i, pot_sol_i in zip(guess, potential_sol):
     if guess_i == pot_sol_i:
       matches += 1
-    if pot_sol_i in guess:
+    if pot_sol_i in left_of_guess:
       color_match += 1
+      left_of_guess.remove(pot_sol_i)
   if matches > num_blacks:
     return True
   # Consider that there cannot be any more matching colors than whites.
@@ -56,6 +59,13 @@ def _InvalidSolution(num_blacks, num_whites, guess, potential_sol):
     return True 
   return False
  
+
+def _PossAns2(guess, num_blacks, num_whites, possibles):
+  new_possibles = []
+  for possible in possibles:
+    if not _InvalidSolution(num_blacks, num_whites, guess, possible):
+      new_possibles.append(possible)
+  return new_possibles
 
 def _PossAns(guess, num_blacks, num_whites):
   """Returns a set of tuples with possible answers.
@@ -191,7 +201,8 @@ class Guesser(object):
       print 'Current answer: %s' % str(guess)
       print 'Num whites: %d' % whites
       print 'Num blacks: %d' % blacks
-    now_possibles = _PossAns(guess, blacks, whites)
+    now_possibles = set(_PossAns2(guess, blacks, whites, self.possibles))
+    #now_possibles = _PossAns(guess, blacks, whites)
     if DEBUG:
       #print 'Prev solutions are: %s' % str(self.possibles)
       print 'Possible solutions are: %s' % str(now_possibles)
@@ -206,6 +217,40 @@ class Guesser(object):
     valid_chars = ''.join(VALID_CHARS)
     #valid_chars = '01234567'
     return [a for a in itertools.product(valid_chars, repeat=NUM_SPACES)]
+
+def _DetermineWhiteBlack(current_ans, correct_ans):
+  """
+  Args:
+    current_ans: my current guess tuple.
+    correct_ans: the correct answer tuple.
+  Returns:
+    (num_black, num_white) a user would respond with.
+  """
+  num_white = 0
+  num_black = 0
+  left_of_answer = list(correct_ans)
+  for cur_ans_i, corr_ans_i in zip(current_ans, correct_ans):
+    if cur_ans_i == corr_ans_i:
+      num_black += 1
+    elif cur_ans_i in left_of_answer:
+      num_white += 1
+      # Pop off that we used this color to count towards a white.
+      left_of_answer.remove(cur_ans_i)
+  return (num_black, num_white)
+
+def _GetFeedback(current_ans, correct_ans):
+  """Get feedback from the user or make the computer figure out the answer.
+
+  Args:
+    current_ans: my current guess tuple.
+    correct_ans: the correct answer tuple.
+  """
+  if AUTO_ANSWER:
+    (num_black, num_white) = _DetermineWhiteBlack(current_ans, correct_ans)
+    return '%d %d' % (num_black, num_white)  #'1 0'
+  else:
+    print 'Enter %d pegs with a space (3b 2w):' % NUM_SPACES
+    return raw_input()
 
 def main(argv):
   if len(argv) < 2:
@@ -228,11 +273,14 @@ def main(argv):
     curans = guesser.Guess()
     print 'Myyy guess is: %s' % str(_Translate(curans))
     if curans == ans_tup:
-      correct = False #True #Lets go forever! #True
+      if AUTO_ANSWER:
+        correct = True
+      else:
+        correct = False #Let's go forever! Playing with a human.
     else:
-      print 'Enter %d pegs with a space (3b 2w):' % NUM_SPACES
-      myfeedback = raw_input()
+      myfeedback = _GetFeedback(curans, ans_tup) 
       (blacks, whites) = myfeedback.split(' ')
+      print 'Blacks: %d, Whites: %d' % (int(blacks), int(whites))
       guesser.Prune(curans, int(whites), int(blacks))
   print 'Num guesses: %d' % guesser.num_guesses 
   
@@ -246,12 +294,3 @@ class Tester(object):
   
   def TestGuesser(self):
     guesser = Guesser()
-    possibles = guesser._MakePossibles(2, 3)
-    AssertIn('000', possibles) 
-    AssertIn('001', possibles) 
-    AssertIn('010', possibles) 
-    AssertIn('011', possibles) 
-    AssertIn('100', possibles) 
-    AssertIn('101', possibles) 
-    AssertIn('110', possibles) 
-    AssertIn('111', possibles) 
