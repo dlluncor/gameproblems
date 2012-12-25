@@ -3,7 +3,7 @@ import math
 import random
 import sys
 
-DEBUG = 0
+DEBUG = 1
 
 def AssertIn(obj, item):
   if obj not in item:
@@ -11,9 +11,10 @@ def AssertIn(obj, item):
 
 
 # Colors range from '0' to 'NUM_CHARS - 1'
-NUM_CHARS = 8
-NUM_SPACES = 5
+NUM_CHARS = 4
+NUM_SPACES = 3
 
+VALID_CHARS = [str(ind) for ind in xrange(NUM_CHARS)]
 
 def _ColorsNotMine(mycolor):
   """Returns a list of colors that are not mine. A color is a single character '1'."""
@@ -64,17 +65,20 @@ def _PossAns(guess, num_blacks, num_whites):
         # For any unused index, set the item to that color that is not my index though.
         indices_to_use = unfilled_indices[:]
         if DEBUG:
-          print 'Pos to guess: %d' % pos_to_guess
-          print 'Unfilled inds: %s' % str(indices_to_use)
+          #print 'Pos to guess: %d' % pos_to_guess
+          #print 'Unfilled inds: %s' % str(indices_to_use)
+          pass
         if pos_to_guess in indices_to_use: # TODO: Shouldn't this be true though? Huh?
           indices_to_use.remove(pos_to_guess)
+        else:
+          print 'wtf a problem white'
         # Fill in indices for which we know the color cannot be there.
         for index in indices_to_use:
           unfilled = unfilled_indices[:]
           unfilled.remove(index)
 
           used_guess = used_for_guess[:]
-          used_guess[pos_to_guess] = True
+          used_guess[pos_to_guess] = True # Hm?
 
           color_from_guess = guess[pos_to_guess]
           pot_sol = potential_sol[:]
@@ -83,9 +87,13 @@ def _PossAns(guess, num_blacks, num_whites):
 
     elif blanks > 0:
       blanks -= 1
+      # Go through the unused indices.
       unguessed_indices = _GetUnguessed(used_for_guess)
       for pos_to_guess in unguessed_indices:
-        # Apply the blank rule to a position we have not guessed yet.
+        # Apply the blank rule to all unset indices just in case.
+        #indices_to_use = unfilled_indices[:]
+        
+
         color_from_guess = guess[pos_to_guess]
         # Find all other colors that are not this guess.
         diff_colors = _ColorsNotMine(color_from_guess)
@@ -93,7 +101,8 @@ def _PossAns(guess, num_blacks, num_whites):
           unfilled = unfilled_indices[:]
           if pos_to_guess in unfilled: # TODO: shouldnt this always be true though?
             unfilled.remove(pos_to_guess)
-        
+          else:
+            print 'wtf a problemm blank' 
           used_guess = used_for_guess[:]
           used_guess[pos_to_guess] = True
 
@@ -105,9 +114,9 @@ def _PossAns(guess, num_blacks, num_whites):
       answers.add(tuple(potential_sol))
 
   num_blanks = NUM_SPACES - num_whites - num_blacks
-  unfilled_indices = [0, 1, 2, 3, 4]
-  used_for_guess = [False, False, False, False, False]
-  potential_sol = [-1, -1, -1, -1, -1]
+  unfilled_indices = [ind for ind in xrange(NUM_SPACES)] #[0, 1, 2, 3, 4]
+  used_for_guess = [False for _ in xrange(NUM_SPACES)] #[False, False, False, False, False]
+  potential_sol = [-1 for _ in xrange(NUM_SPACES)] #[-1, -1, -1, -1, -1]
   _FindAns(num_blacks, num_whites, num_blanks,
            unfilled_indices, used_for_guess,
            potential_sol)
@@ -144,16 +153,19 @@ class Guesser(object):
       print 'Num blacks: %d' % blacks
     now_possibles = _PossAns(guess, blacks, whites)
     if DEBUG:
-      print 'Prev solutions are: %s' % str(self.possibles)
+      #print 'Prev solutions are: %s' % str(self.possibles)
       print 'Possible solutions are: %s' % str(now_possibles)
     # Find the union of previous possible answers and my possible answers.
     self.possibles = list(now_possibles.intersection(set(self.possibles)))
     if DEBUG:
-      print 'Union of possibles is: %s' % str(self.possibles)
+      #print 'Union of possibles is: %s' % str(self.possibles)
+      pass
 
   def _MakePossibles(self, num_chars, num_spaces):
     """Creates a list of tuples for all possible numbers."""
-    return [a for a in itertools.product('01234567', repeat=NUM_SPACES)]
+    valid_chars = ''.join(VALID_CHARS)
+    #valid_chars = '01234567'
+    return [a for a in itertools.product(valid_chars, repeat=NUM_SPACES)]
 
 def main(argv):
   if len(argv) < 2:
@@ -164,7 +176,11 @@ def main(argv):
     print 'Your secret must be %d characters long' % NUM_SPACES
     return
   ans = argv[1] # '1211'
-  ans_tup = tuple([char for char in ans]) 
+  ans_tup = tuple([char for char in ans])
+  for char in ans_tup:
+    if char not in VALID_CHARS:
+      print 'Your secret must be in the range %s' % str(VALID_CHARS)
+      return
   correct = False
   guesser = Guesser()
   while not correct:
@@ -173,7 +189,7 @@ def main(argv):
     if curans == ans_tup:
       correct = True
     else:
-      print 'Enter 5 pegs with a space (3b 2w):'
+      print 'Enter %d pegs with a space (3b 2w):' % NUM_SPACES
       myfeedback = raw_input()
       (blacks, whites) = myfeedback.split(' ')
       guesser.Prune(curans, int(whites), int(blacks))
