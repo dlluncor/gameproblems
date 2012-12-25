@@ -16,6 +16,15 @@ NUM_SPACES = 5
 
 VALID_CHARS = [str(ind) for ind in xrange(NUM_CHARS)]
 
+def _Translate(my_guess):
+  """Converts my guess into colors."""
+  d = {'0': 'R', '1': 'O', '2': 'Y', '3': 'G', '4': 'Blu', '5': 'W',
+       '6': 'Br', '7': 'Black'}
+  trans = []
+  for char in my_guess:
+    trans.append(d[char])
+  return ' '.join(trans) 
+
 def _ColorsNotMine(mycolor):
   """Returns a list of colors that are not mine. A color is a single character '1'."""
   colors = [str(num) for num in xrange(NUM_CHARS)]
@@ -28,7 +37,19 @@ def _GetUnguessed(arr_of_guessed):
   for index in xrange(len(arr_of_guessed)):
     if not arr_of_guessed[index]:
       unguessed.append(index)
-  return unguessed 
+  return unguessed
+
+def _InvalidSolution(num_blacks, guess, potential_sol):
+  """If there are more than num_blacks exact overlaps, it is an invalid solution."""
+  matches = 0
+  assert len(guess) == len(potential_sol)
+  for guess_i, pot_sol_i in zip(guess, potential_sol):
+    if guess_i == pot_sol_i:
+      matches += 1
+  if matches > num_blacks:
+    return True
+  return False
+ 
 
 def _PossAns(guess, num_blacks, num_whites):
   """Returns a set of tuples with possible answers.
@@ -88,6 +109,10 @@ def _PossAns(guess, num_blacks, num_whites):
           color_from_guess = guess[pos_to_guess]
           pot_sol = potential_sol[:]
           pot_sol[index] = color_from_guess
+          # Scrub invalid solutions any time a potential solution now has more
+          # than black overlaps.
+          if _InvalidSolution(num_blacks, guess, pot_sol):
+            continue
           _FindAns(blacks, whites, blanks, unfilled, used_guess, pot_sol)
 
     elif blanks > 0:
@@ -112,6 +137,8 @@ def _PossAns(guess, num_blacks, num_whites):
 
             pot_sol = potential_sol[:]
             pot_sol[index] = diff_color
+            if _InvalidSolution(num_blacks, guess, pot_sol):
+              continue
             _FindAns(blacks, whites, blanks, unfilled, used_guess, pot_sol)
     else:
       # We have reached the end horray.
@@ -190,9 +217,9 @@ def main(argv):
   guesser = Guesser()
   while not correct:
     curans = guesser.Guess()
-    print 'Guessing %s' % str(curans)
+    print 'Guessing %s: ' % str(_Translate(curans))
     if curans == ans_tup:
-      correct = False # Lets go forever! #True
+      correct = False #True #Lets go forever! #True
     else:
       print 'Enter %d pegs with a space (3b 2w):' % NUM_SPACES
       myfeedback = raw_input()
