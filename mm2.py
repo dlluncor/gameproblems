@@ -52,6 +52,19 @@ def _PossAns2(guess, num_blacks, num_whites, possibles):
       new_possibles.append(possible)
   return new_possibles
 
+def _ChooseMaxDistinct(guesses):
+  """Chooses the guess with the most number of distinct colors."""
+  if not guesses:
+    raise AssertionError('Cannot choose amongst no guesses.')
+  max_size = 0
+  best_guess = None
+  for guess in guesses:
+    cur_size = len(set(guess))
+    if cur_size > max_size:
+      max_size = cur_size
+      best_guess = guess
+  return best_guess 
+
 class Guesser(object):
   
   def __init__(self):
@@ -63,11 +76,19 @@ class Guesser(object):
       possibility.
     """
     self.num_guesses += 1
+    # Get 10 random possibilities and choose the one with the most number of
+    # distinct colors.
     num_poss = len(self.possibles)
     print 'Number of possibilities: %d' % num_poss
+    num_guesses = min(32500, num_poss)
+    guesses = [self._GuessRandom(num_poss) for _ in xrange(num_guesses)]
+    el = _ChooseMaxDistinct(guesses)
+    self.possibles.remove(el)
+    return el
+
+  def _GuessRandom(self, num_poss):
     guess_rand = int(math.floor(random.random() * num_poss))
     el = self.possibles[guess_rand]
-    self.possibles.remove(el)
     return el 
 
   def Prune(self, guess, whites, blacks):
@@ -83,6 +104,8 @@ class Guesser(object):
       print 'Num whites: %d' % whites
       print 'Num blacks: %d' % blacks
     self.possibles = _PossAns2(guess, blacks, whites, self.possibles)
+    # I think its better to shuffle the possibilities I ask about.
+    random.shuffle(self.possibles)
     if DEBUG:
       print 'Possible solutions are: %s' % str(now_possibles)
     # Find the union of previous possible answers and my possible answers.
