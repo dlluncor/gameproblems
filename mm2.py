@@ -4,12 +4,7 @@ import random
 import sys
 
 DEBUG = 0
-AUTO_ANSWER = 1 # Whether we want the computer to answer itself.
-
-def AssertIn(obj, item):
-  if obj not in item:
-    raise AssertionError('%s not in %s' % (obj, item))
-
+AUTO_ANSWER = 0 # Whether we want the computer to answer itself.
 
 # Colors range from '0' to 'NUM_CHARS - 1'
 NUM_CHARS = 8
@@ -38,10 +33,10 @@ def _InvalidSolution(num_blacks, num_whites, guess, potential_sol):
     if pot_sol_i in left_of_guess:
       color_match += 1
       left_of_guess.remove(pot_sol_i)
-  if matches > num_blacks:
+  if matches != num_blacks:
     return True
   # Consider that there cannot be any more matching colors than whites.
-  if color_match > (num_blacks + num_whites):
+  if color_match != (num_blacks + num_whites):
     return True 
   return False
  
@@ -51,6 +46,8 @@ def _PossAns2(guess, num_blacks, num_whites, possibles):
     if not _InvalidSolution(num_blacks, num_whites, guess, possible):
       new_possibles.append(possible)
   return new_possibles
+
+
 
 def _ChooseMaxDistinct(guesses):
   """Chooses the guess with the most number of distinct colors."""
@@ -63,7 +60,30 @@ def _ChooseMaxDistinct(guesses):
     if cur_size > max_size:
       max_size = cur_size
       best_guess = guess
-  return best_guess 
+  return best_guess
+
+def _ChooseNColor(guesses, n):
+  """Choose guess with exactly n colors, or most colors if possible."""
+  cur_guess = None
+  for guess in guesses:
+    cur_size = len(set(guess))
+    cur_guess = guess
+    if cur_size == n:
+      return guess
+  return _ChooseMaxDistinct(guesses)
+
+def _ChooseBestGuess(guesses, num_guesses):
+  num_strategies = 3
+  which_strategy = num_guesses % num_strategies
+  if which_strategy == 0:
+    return _ChooseMaxDistinct(guesses)
+  elif which_strategy == 1:
+    return _ChooseMaxDistinct(guesses)
+    #return _ChooseNColor(guesses, 2)
+  elif which_strategy == 2:
+    return _ChooseMaxDistinct(guesses)
+    #return _ChooseNColor(guesses, 3) 
+ 
 
 class Guesser(object):
   
@@ -82,7 +102,7 @@ class Guesser(object):
     print 'Number of possibilities: %d' % num_poss
     num_guesses = min(32500, num_poss)
     guesses = [self._GuessRandom(num_poss) for _ in xrange(num_guesses)]
-    el = _ChooseMaxDistinct(guesses)
+    el = _ChooseBestGuess(guesses, self.num_guesses)
     self.possibles.remove(el)
     return el
 
@@ -105,7 +125,7 @@ class Guesser(object):
       print 'Num blacks: %d' % blacks
     self.possibles = _PossAns2(guess, blacks, whites, self.possibles)
     # I think its better to shuffle the possibilities I ask about.
-    random.shuffle(self.possibles)
+    # random.shuffle(self.possibles)
     if DEBUG:
       print 'Possible solutions are: %s' % str(now_possibles)
     # Find the union of previous possible answers and my possible answers.
@@ -130,13 +150,28 @@ def _DetermineWhiteBlack(current_ans, correct_ans):
   num_white = 0
   num_black = 0
   left_of_answer = list(correct_ans)
+  index_used_for_black = []
+  # Fill blacks.
+  index = 0
   for cur_ans_i, corr_ans_i in zip(current_ans, correct_ans):
+    index += 1
     if cur_ans_i == corr_ans_i:
       num_black += 1
-    elif cur_ans_i in left_of_answer:
-      num_white += 1
-      # Pop off that we used this color to count towards a white.
       left_of_answer.remove(cur_ans_i)
+      index_used_for_black.append(index)
+  # Fill whites.
+  index = 0
+  for cur_ans_i, corr_ans_i in zip(current_ans, correct_ans):
+    index += 1
+    if index in index_used_for_black:
+      continue
+    if cur_ans_i in left_of_answer:
+      num_white += 1
+      print 'Cur ans i match: %s' % str(cur_ans_i)
+      # Pop off that we used this color to count towards a white.
+      print 'left: %s' % str(left_of_answer)
+      left_of_answer.remove(cur_ans_i)
+
   return (num_black, num_white)
 
 def _GetFeedback(current_ans, correct_ans):
@@ -185,7 +220,7 @@ def StartGuessing(ans):
   return guesser.num_guesses
 
 def Simulate(ans):
-  N = 100
+  N = 10
   guess_list = [StartGuessing(ans) for _ in xrange(N)]
   avg = sum(guess_list) / N
   print '-' * 20
